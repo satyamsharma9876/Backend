@@ -61,7 +61,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password, this.password)// return t or f
 }
 
-userSchema.methods.generateAccessToken = function(){//Ye JWT token banata hai using jsonwebtoke,Login ke baad client ko milta hai, or Har request me bhejta hai & Ye short expiry
+userSchema.methods.generateAccessToken = function(){//Ye JWT token banata hai using jsonwebtoke & for authentication purpose,Login ke baad client ko milta hai, or Har request me bhejta hai & Ye short lived hote h
   return jwt.sign(// directly ret krdia b/c generateToken krne me time ni lgta so we not use async await
         {
             _id: this.id,
@@ -75,7 +75,7 @@ userSchema.methods.generateAccessToken = function(){//Ye JWT token banata hai us
         }
     )
 }
-userSchema.methods.generateRefreshToken = function(){//
+userSchema.methods.generateRefreshToken = function(){//long term token & for session maintain, access token expire hone pe new token generate karega
      return jwt.sign(// directly ret krdia b/c generateToken krne me time ni lgta so we not use async await
         {
             _id: this.id,

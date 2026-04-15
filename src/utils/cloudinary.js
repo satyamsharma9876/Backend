@@ -21,9 +21,9 @@ const uploadOnCloudinary = async (localFilePath) => {
             resource_type: "auto"
         })
         // file has been uploaded successfull
-        //console.log("file is uploaded on cloudinary ", response.url);// got printed 2 times for avatar and for coverImage
-        fs.unlinkSync(localFilePath)
-        return response;
+        console.log("file is uploaded on cloudinary ", response.url);// got printed 2 times for avatar and for coverImage
+        //fs.unlinkSync(localFilePath)// ye jo image public/temp me store ho ja rha postman se req 
+        return response;               // usko delte kr de rha h
     } catch (error) {
          //console.log("Cloudinary Error:", error);
         fs.unlinkSync(localFilePath)// remove the locally saved file as the upload 
@@ -31,6 +31,7 @@ const uploadOnCloudinary = async (localFilePath) => {
         return null;        
     }
 }
+
 
 export {uploadOnCloudinary}
 

@@ -4,6 +4,23 @@ import { User } from "../models/user.models.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+
+const generateAccessAndRefreshTokens = async(userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = User.generateAccessToken()
+        const refreshToken = User.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false})// refresh token ko db me save kr rhe h yha pe
+        return {accessToken, refreshToken}
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating refresh and access tokens")
+    }
+}
+
+
 const registerUser = asyncHandler( async (req, res) => {
     // steps for register user- get user details from frontend
     // check validation eg email shi formate me h ki nhi
@@ -33,8 +50,8 @@ const registerUser = asyncHandler( async (req, res) => {
 
 
     // step 3
-    const existedUser = await User.findOne({
-        $or: [{ username },{ email }]
+    const existedUser = await User.findOne({// it return the first entry of username or email in mongodb
+        $or: [{ username },{ email }]       // & await used b/c db is in other continent
     })
     console.log(existedUser);// null if email or username is unique
     
@@ -47,7 +64,7 @@ const registerUser = asyncHandler( async (req, res) => {
     //step 4: check for images, check for avatar
     const avatarLoacalPath = req.files?.avatar?.[0]?.path;
     //const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
-    // sol without is we r not using coverImage?.[0]
+    // sol without using coverImage?.[0]
     let coverImageLocalPath;
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
         coverImageLocalPath = req.files.coverImage[0].path
@@ -60,8 +77,8 @@ const registerUser = asyncHandler( async (req, res) => {
     // step 5: upload them to cloudinary 
     const avatar = await uploadOnCloudinary(avatarLoacalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-     console.log(avatar);//file is uploaded on cloudinary  http://res.cloudinary.com/dixqozsxt/image/upload/v1776184966/tkba8qb5khw4secasyaw.jpg
-     console.log(coverImage);//file is uploaded on cloudinary  http://res.cloudinary.com/dixqozsxt/image/upload/v1776184967/bi6nohtgqfkeeymn5kqk.jpg
+     //console.log(avatar);// alot of details about avatar image printed
+     //console.log(coverImage);// alot of details about avatar image printed
      
     // checking ki avatar cloundnary pe properly gya h ki nhi
     if(!avatar){
@@ -77,6 +94,7 @@ const registerUser = asyncHandler( async (req, res) => {
         password,
         username: username.toLowerCase()
     })
+      // console.log(user);// username,email,fullName,avatar,coverImage,watchHistory,passwordd, creayedAt,updatedAt all with values printed
        
     //step7: remove password & refresh token field from response
     const createdUser = await User.findById(user._id).select(
@@ -94,7 +112,89 @@ const registerUser = asyncHandler( async (req, res) => {
 
 })
 
+const loginUser = asyncHandler(async (req, res) => {
+      //steps..get data by req.body
+      //get access by username or email
+      //find whether the user exist in db or not
+      //check the password corect or not
+      //if password coreect...make access and refresh token, it will be done many times so make a seperate fun
+      //send cookie
+      
+      //step1:get data by req.body
+      const {email, username, password} = req.body
+
+      if(!username && !email) {
+        throw new ApiError(400, "username or email is required")
+      }
+      
+      //step3:find whether the user exist in db or not
+      const user = await User.findOne({
+        $or: [{username}, {email}]
+      })
+
+      // agar user nhi mila to error sed kro
+      if(!user) throw new ApiError(404,"User does not exist")
+
+      //step4: check the password corect or not
+      const isPasswordValid = await user.isPasswordCorrect(password)
+
+      if(!isPasswordValid) throw new ApiError(401,"Invalid user credentials")
+
+      //step5: if password coreect...make access and refresh token,  
+      const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+      const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+      const options = {
+        httpOnly: true,
+        secure: true
+      }
+
+      return res
+      .status(200)
+      .cookie("accessToken",accessToken, options)
+      .cookie("refreshToken",refreshToken, options)
+      .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken,
+                refreshToken
+            },
+            "User loggedIn Successfully"
+        )
+      )   
+})
+
+const logoutUser = asyncHandler(async(req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new:true
+        }
+     )
+     const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+   
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out"))
+})
+
+
 export {
      registerUser,
+     loginUser,
+     logoutUser
  } 
 
