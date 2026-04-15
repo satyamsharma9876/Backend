@@ -16,9 +16,10 @@ const registerUser = asyncHandler( async (req, res) => {
     // return response
 
     const {fullName, email, username, password } = req.body// it can only handle data coming in json formate, cant handle files
-    console.log("email:", email);
+    console.log("email:", email);//email: satyam@123.com
+    //console.log(req.body);//  email,fullname, password, username with their values prinnted
     
-
+    
     // step 2 : validation
     // if(fullName === "") {
     //     throw new ApiError(400, "error")
@@ -32,30 +33,39 @@ const registerUser = asyncHandler( async (req, res) => {
 
 
     // step 3
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username },{ email }]
     })
-    //console.log(existedUser);
+    console.log(existedUser);// null if email or username is unique
     
     if(existedUser) {
         throw new ApiError(409, "User with email or username already exists")
     }
 
+    //console.log(req.files); //alot of values came
+    
     //step 4: check for images, check for avatar
-    const avatarLoacalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    const avatarLoacalPath = req.files?.avatar?.[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
+    // sol without is we r not using coverImage?.[0]
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
 
     if(!avatarLoacalPath){
         throw new ApiError(400, "Avatar file is required")
     }
-
+    console.log("avatarLocalPath:", avatarLoacalPath);//avatarLocalPath: public\temp\satyamimage.jpeg
     // step 5: upload them to cloudinary 
     const avatar = await uploadOnCloudinary(avatarLoacalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
+     console.log(avatar);//file is uploaded on cloudinary  http://res.cloudinary.com/dixqozsxt/image/upload/v1776184966/tkba8qb5khw4secasyaw.jpg
+     console.log(coverImage);//file is uploaded on cloudinary  http://res.cloudinary.com/dixqozsxt/image/upload/v1776184967/bi6nohtgqfkeeymn5kqk.jpg
+     
     // checking ki avatar cloundnary pe properly gya h ki nhi
     if(!avatar){
-        throw new ApiError(400, "Avatar file is required")
+        throw new ApiError(400, "Avatar file is reequired")
     }
 
     // step 6: create user obj - create entry in db
@@ -67,10 +77,10 @@ const registerUser = asyncHandler( async (req, res) => {
         password,
         username: username.toLowerCase()
     })
-    
-    //step7: remove password & refresh oken field from response
+       
+    //step7: remove password & refresh token field from response
     const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken "// - sign for ki ye ye fields nhi chaiye
+        "-password -refreshToken "// -ve sign for ki ye ye fields nhi chaiye
     )
     
     //checking ki user aya ya nhi
@@ -84,10 +94,7 @@ const registerUser = asyncHandler( async (req, res) => {
 
 })
 
-
-
 export {
      registerUser,
  } 
-
 

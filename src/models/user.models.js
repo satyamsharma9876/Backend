@@ -52,17 +52,16 @@ const userSchema = new Schema(
 )
 
 // this following login will encrypt the password 
-userSchema.pre("save", async function(next) {
-    if(!this.isModified("password")) return next();
+userSchema.pre("save", async function() {
+    if(!this.isModified("password")) return ;
     this.password = await bcrypt.hash(this.password, 10)// isme bhi time lagega to use await
-    next()
 })
 
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password, this.password)// return t or f
 }
 
-userSchema.methods.generateAccessToken = function(){
+userSchema.methods.generateAccessToken = function(){//Ye JWT token banata hai using jsonwebtoke,Login ke baad client ko milta hai, or Har request me bhejta hai & Ye short expiry
   return jwt.sign(// directly ret krdia b/c generateToken krne me time ni lgta so we not use async await
         {
             _id: this.id,
@@ -76,7 +75,7 @@ userSchema.methods.generateAccessToken = function(){
         }
     )
 }
-userSchema.methods.generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function(){//
      return jwt.sign(// directly ret krdia b/c generateToken krne me time ni lgta so we not use async await
         {
             _id: this.id,
@@ -90,7 +89,4 @@ userSchema.methods.generateRefreshToken = function(){
 
 
 export const User = mongoose.model("User", userSchema)
-
-
-
 

@@ -1,4 +1,5 @@
 import dotenv from "dotenv"
+import "dotenv/config";
 //require('dotenv').config({path: './env'})// it will also work but it breks the continuity of code
 
 // import 'dotenv/config'
@@ -6,14 +7,17 @@ import dotenv from "dotenv"
 
 // import mongoose from "mongoose";
 // import { DB_NAME } from "./constants";
-import { app } from "./app.js";
+//      import { app } from "./app.js";
 
 // approch 2
-import connectDB from "./db/index.js";
-
 dotenv.config({
     path: './.env'
-})
+ });
+import connectDB from "./db/index.js";
+ import { app } from "./app.js";
+// dotenv.config({
+//     path: './.env'
+// })
 
 // this connectDB() will return promise in db in index.js it is Asynchronus method so it'll return promise
 connectDB()
