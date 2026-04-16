@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
 
-const userSchema = new Schema(
+const userSchema = new Schema(// id khud hi aajata h to id ki koi chinta nhi
     {
         username:{
             type: String,
