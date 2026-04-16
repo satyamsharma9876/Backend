@@ -3,13 +3,13 @@ import {ApiError} from "../utils/ApiError.js"
 import { User } from "../models/user.models.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshTokens = async(userId) => {
     try {
         const user = await User.findById(userId)
-        const accessToken = User.generateAccessToken()
-        const refreshToken = User.generateRefreshToken()
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
         await user.save({ validateBeforeSave: false})// refresh token ko db me save kr rhe h yha pe
@@ -19,7 +19,6 @@ const generateAccessAndRefreshTokens = async(userId) => {
         throw new ApiError(500, "Something went wrong while generating refresh and access tokens")
     }
 }
-
 
 const registerUser = asyncHandler( async (req, res) => {
     // steps for register user- get user details from frontend
@@ -122,7 +121,8 @@ const loginUser = asyncHandler(async (req, res) => {
       
       //step1:get data by req.body
       const {email, username, password} = req.body
-
+      //console.log("email", email);//email one@gmail.com
+      //console.log(password)//12345678
       if(!username && !email) {
         throw new ApiError(400, "username or email is required")
       }
@@ -131,6 +131,7 @@ const loginUser = asyncHandler(async (req, res) => {
       const user = await User.findOne({
         $or: [{username}, {email}]
       })
+      // console.log(user);// _id,username,email,fullName,avatar,coverImage,watchHistory,passwordd, creayedAt,updatedAt,refreshToken all with values printed
 
       // agar user nhi mila to error sed kro
       if(!user) throw new ApiError(404,"User does not exist")
@@ -191,10 +192,56 @@ const logoutUser = asyncHandler(async(req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken// req.body b/c may be user useing mobile phone, req.cookies for laptop
+
+    if(incomingRefreshToken) {
+        throw new ApiError(401, "unauthorized request")
+    }
+    
+    try {
+        // verification of incomingRefreshToken token
+        const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+        
+        // taking info from mongoDB by using _id
+        const user = await User.findById(decodedToken?._id)
+        if(!user) {
+            throw new ApiError(401, "Invaid refresh token")
+        }
+    
+        if(incomingRefreshToken !== user?.refreshToken) {
+             throw new ApiError(401, "Refresh Token is Expired or used")
+        }
+    
+        const options = {
+            httpOnly:true,
+            secure: true
+        }
+    
+       const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+    
+        return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {access, refreshToken: newRefreshToken},
+                "Access token refreshed"
+            )
+        )
+    } catch (error) {// we kept in try catch for safty purpose b/c if any error come in decoded or User.findById
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+
+
+})
 
 export {
      registerUser,
      loginUser,
-     logoutUser
+     logoutUser,
+     refreshAccessToken,
  } 
 
