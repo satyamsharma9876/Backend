@@ -27,6 +27,16 @@ router.route("/logout").post(verifyJWT, logoutUser)// we injected middleware bef
 // b/c for protected routes like logout, currentuser, updateuser, update profile, change passwrd verifyJWT required ✅
 // & for public routes register , login not needed
 router.route("/refresh-token").post(refreshAccessToken)
+router.route("/change-password").post(verifyJWT, changeCurrentPassword)
+router.route("/current-user").get(verifyJWT, getCurrentUser)// .get used b/c here data nhi send ho rha h
+router.route("/update-account").patch(verifyJWT, updateAccountDetails)// .patch b/c if post used then all details will get updated
+
+router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)// upload.single("avatar") is second middleware
+
+router.route("/cover-image").patch(verifyJWT, upload.single("/coverImage"), updateUserCoverImage)
+
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile) //here we r getting data from parms so username hi rakh skte h b/c in user.controller it is username
+router.route("/history").get(verifyJWT, getWatchHistory)
 
 
 export default router
