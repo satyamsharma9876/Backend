@@ -1,9 +1,9 @@
 class ApiError extends Error {
     constructor(
-        statusCode,
-        message= "Something went wrong",
-        errors = [],
-        stack = ""
+        statusCode,       //HTTP status (400, 404, 500)
+        message= "Something went wrong",   //error message
+        errors = [],      //detailed errors (array)
+        stack = ""        //debugging info
     ){// he we overwrite the things writtn in constructer
         
         super(message)

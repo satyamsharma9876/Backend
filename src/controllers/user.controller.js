@@ -6,13 +6,24 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshTokens = async(userId) => {
+      //userId → function call
+      // ↓
+      //DB से user
+     //  ↓
+      //accessToken generate
+      // ↓
+      //refreshToken generate
+      // ↓
+      //refreshToken DB में save
+      // ↓
+      //return tokens
     try {
         const user = await User.findById(userId)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
 
-        user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false})// refresh token ko db me save kr rhe h yha pe
+        user.refreshToken = refreshToken// in DB current valid refresh token store is saved
+        await user.save({ validateBeforeSave: false})// normally mongoose validatin check krta hai, yha false means validation skip kro(fast save)
         return {accessToken, refreshToken}
 
     } catch (error) {
@@ -20,7 +31,7 @@ const generateAccessAndRefreshTokens = async(userId) => {
     }
 }
 
-const registerUser = asyncHandler( async (req, res) => {
+const registerUser = asyncHandler( async (req, res) => {// asyncHAandler handles error
     // steps for register user- get user details from frontend
     // check validation eg email shi formate me h ki nhi
     // check if user already exist: by cheking if email or usrname unique or not
@@ -39,7 +50,7 @@ const registerUser = asyncHandler( async (req, res) => {
     // step 2 : validation
     // if(fullName === "") {
     //     throw new ApiError(400, "error")
-    // }or we can use some method so that is any fiels empty throw error
+    // }or we can use some method so that if any fiels will empty then throw error
 
     if(
         [fullName, email, username, password].some((field) => field?.trim() === "")
@@ -61,7 +72,7 @@ const registerUser = asyncHandler( async (req, res) => {
     //console.log(req.files); //alot of values came
     
     //step 4: check for images, check for avatar
-    const avatarLoacalPath = req.files?.avatar?.[0]?.path;
+    const avatarLoacalPath = req.files?.avatar?.[0]?.path;//[0] b/c multer array deta hai
     //const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
     // sol without using coverImage?.[0]
     let coverImageLocalPath;
@@ -95,9 +106,9 @@ const registerUser = asyncHandler( async (req, res) => {
     })
       // console.log(user);// username,email,fullName,avatar,coverImage,watchHistory,passwordd, creayedAt,updatedAt all with values printed
        
-    //step7: remove password & refresh token field from response
+    //step7: remove sensitive fields like password & refresh token field from response
     const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken "// -ve sign for ki ye ye fields nhi chaiye
+        "-password -refreshToken "// -ve sign for ki ye ye fields nhi chaiye 
     )
     
     //checking ki user aya ya nhi
@@ -105,9 +116,9 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(500,"Something went wrong while regestering the user")
     }
 
-    return res.status(201).json(
+    return res.status(201).json(//201 is HTTP status code means
         new ApiResponse(200, createdUser, "User registered successfully")
-    )
+    )//json(...) client(postman) ko data send kr rha "new ApiResponse(200, data, message)"
 
 })
 
@@ -147,8 +158,8 @@ const loginUser = asyncHandler(async (req, res) => {
       const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
       const options = {
-        httpOnly: true,
-        secure: true
+        httpOnly: true,// JS cant access cookie
+        secure: true //cookie will only go to https pr hi jayigi
       }
 
       return res
@@ -159,7 +170,8 @@ const loginUser = asyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             {
-                user: loggedInUser, accessToken,
+                user: loggedInUser,
+                accessToken,
                 refreshToken
             },
             "User loggedIn Successfully"
@@ -172,8 +184,8 @@ const logoutUser = asyncHandler(async(req, res) => {
         req.user._id,
         {
             $set: {
-                refreshToken: undefined
-            }
+                refreshToken: undefined//agr hacker ke pass access token h to limited damage
+            }// if ref Token h to bda risk so during logout delete refresh token
         },
         {
             new:true
@@ -189,22 +201,38 @@ const logoutUser = asyncHandler(async(req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "User logged Out"))
+    .json(new ApiResponse(200, {}, "User logged Out"))// {} koi data retun nhi krna
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken// req.body b/c may be user useing mobile phone, req.cookies for laptop
+            //    Client → refresh token भेजता है
+            //    ↓
+            //    Backend verify करता है (jwt.verify)
+            //     ↓
+            //    DB से user निकालता है
+            //     ↓
+            //    token match check
+            //     ↓
+            //    नया access + refresh token generate
+            //     ↓
+            //    cookies update
+            //     ↓
+            //    response भेजता है
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken// token 2 jagah se aa skta hai..cookies se(browser) or body se(mobile / API client)
 
-    if(!incomingRefreshToken) {
+    if(!incomingRefreshToken) {//user login नहीं है / token expired / missing
         throw new ApiError(401, "unauthorized request")
     }
     
     try {
-        // verification of incomingRefreshToken token
+        // verification of incomingRefreshToken sent be client is done by banckend
         const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
-        
+        //how JWT VERIFY WORKS- incomingRefreshToken aya ->split ->decode payload part->signature match check->expiry check->valid->decoded data return
+
+
+
         // taking info from mongoDB by using _id
-        const user = await User.findById(decodedToken?._id)
+        const user = await User.findById(decodedToken?._id)// mongodb se User fetch
         if(!user) {
             throw new ApiError(401, "Invaid refresh token")
         }
@@ -218,16 +246,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
     
-       const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+       const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
     
         return res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(
             new ApiResponse(
                 200,
-                {access, refreshToken: newRefreshToken},
+                {accessToken, 
+                refreshToken},
                 "Access token refreshed"
             )
         )
@@ -238,28 +267,60 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 })
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
-    const {oldPasswod, newPassword} = req.body
+   //  User request (old + new password)
+   //   ↓
+   //  verifyJWT (user identify)
+   //   ↓
+   //  DB से user
+   //   ↓
+   //  old password verify
+   //   ↓
+   // new password set
+   //   ↓
+   // hash + save
+   //   ↓
+   // success response
+
+    const {oldPassword, newPassword} = req.body
 
     const user = await User.findById(req.user?._id)
-    const isPasswordCorrect = await user.isPasswordCorrect(oldPasword)
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if(!isPasswordCorrect){
         throw new ApiError(400, "Invalid old password")
     }
 
     user.password = newPassword
-    await user.save({validateBeforeSave: false})
+    //user.refreshToken = undefined //mentor not included but gpt saying to include
+    await user.save({validateBeforeSave: false})//hashed password stored in DB
 
     return res
-    .status(200)
+    .status(200)// why {} b/c it is sensitive info koi data return nhi krna
     .json(new ApiResponse(200, {}, "Password changed successfully"))
 
 })
 
 const getCurrentUser = asyncHandler(async(req, res) => {
+    //Client request (/me या /current-user)
+    // ↓
+    // cookie में accessToken जाता है
+    // ↓
+   // verifyJWT चलता है
+    // ↓
+    // token decode → userId मिलता है
+    //  ↓
+    // DB से user fetch
+    //  ↓
+    // req.user में store
+    //  ↓
+    // controller → response भेजता है
     return res
     .status(200)
-    .json(200, req.user, "current user fetched successfully")
+    .json(new ApiResponse(
+        200, 
+        req.user, 
+        "User fetched successfully"
+    ))
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
@@ -269,7 +330,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,// here we did optionally unwrap
         {
             $set: {
@@ -278,6 +339,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
             }
         },
         {new: true}
+
     ).select("-password")
 
     return res
@@ -291,7 +353,8 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
     if(!avatarLoacalPath){
         throw new ApiError(400, "Avatar file is missing")
     }
-
+    
+    //TODO: delete old image - hw
     const avatar = await uploadOnCloudinary(avatarLoacalPath)
 
     if(!avatar.url) {
@@ -338,6 +401,135 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
     .json(new ApiResponse(200, user, "coverImage Updated Successfully"))
 })
 
+const getUserChannelProfile = asyncHandler(async(req, res) => {
+    const {username} = req.params
+
+    if(!username?.trim()) {
+        throw new ApiError(400, "username s missing")
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase() 
+            }
+        },
+        {
+            $lookup:{// $lookup JOIN krta h
+                from: "subscriptions",// jis field ko join krna hai uska naam yha likho
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"// jo muje follow krte h ya mere subscribers h unko maine yha naam diya "subscribers"
+            }// ye hogyi hamari first pipeline jha pr hmne find krli no. of subscribers by using channel
+        },//now is channel ne kitno ko subscribe krkr rakha hai is finded by subscribers below
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"//jinko maine subscribed kr rakha hai unko maine naam diya hai subscribedTo
+            }
+        },{
+            $addFields: {// it does calculation
+                subscribersCount: {
+                    $size: "$subscribers"// $ is added b/c it is field
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if:{$in: [req.user?._id, "$subscribers.subscriber"]},// in check kr rha h ki user present h ya nhi
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {//cleanup
+                fullName: 1,
+                username: 1,
+                subscribersCount:1,
+                channelsSubscribedToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage: 1,
+                email:1
+            }
+        }
+
+    ])
+
+    if(!channel?.length) {
+        throw new ApiError(404, "channel does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "user channel fetched successfully")
+    )
+})
+
+const getWatchHistory = asyncHandler(async(req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                       $lookup: {
+                        from: "users",
+                        localField: "owner",
+                        foreignField: "_id",
+                        as: "owner",
+                        pipeline: [
+                            {
+                                $project: {
+                                    fullName: 1,
+                                    username: 1,
+                                    avatar: 1
+                                }
+                            }
+                        ]
+                       } 
+                    },
+                    {
+                        $addFields: {
+                            owner:{
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+           200, 
+           user[0].watchHistory,
+           "watch History Fetch Successfully"
+        )
+    )
+})
+
+
+
+
+
 export {
      registerUser,
      loginUser,
@@ -347,6 +539,8 @@ export {
      getCurrentUser,
      updateAccountDetails,
      updateUserAvatar,
-     updateUserCoverImage
+     updateUserCoverImage,
+     getUserChannelProfile,
+     getWatchHistory
  } 
 

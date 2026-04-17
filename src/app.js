@@ -4,15 +4,18 @@ import cookieParser from "cookie-parser"
 
 const app = express()
 
+
+// niche sb app.use middlewares hai
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true
 }))
 
-app.use(express.json({limit: "16kb"}))
-app.use(express.urlencoded({extended:true, limit: "16kb"}))
-app.use(express.static("public"))
-app.use(cookieParser())
+app.use(express.json({limit: "16kb"}))// json data read krne k liye, w/o it req.body= undefined
+app.use(express.urlencoded({extended:true, limit: "16kb"}))// form data(text) ko jS obj me convert krta hai
+app.use(express.static("public"))//public folder को publicly accessible बना देता है
+// eg public/temp/image.jpg ko tm browser me http://localhost:8000/temp/image.jpg se access kr skte ho
+app.use(cookieParser())//cookies पढ़ने के लिए
 
 
 //routes import
