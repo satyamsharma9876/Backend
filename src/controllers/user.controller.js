@@ -4,6 +4,8 @@ import { User } from "../models/user.models.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
+
 
 const generateAccessAndRefreshTokens = async(userId) => {
       //userId → function call
@@ -123,6 +125,7 @@ const registerUser = asyncHandler( async (req, res) => {// asyncHAandler handles
 })
 
 const loginUser = asyncHandler(async (req, res) => {
+    
       //steps..get data by req.body
       //get access by username or email
       //find whether the user exist in db or not
@@ -180,11 +183,12 @@ const loginUser = asyncHandler(async (req, res) => {
 })
 
 const logoutUser = asyncHandler(async(req, res) => {
+    
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined//agr hacker ke pass access token h to limited damage
+            $set: {// this removes the field from document
+                refreshToken: 1//agr hacker ke pass access token h to limited damage
             }// if ref Token h to bda risk so during logout delete refresh token
         },
         {
@@ -525,9 +529,6 @@ const getWatchHistory = asyncHandler(async(req, res) => {
         )
     )
 })
-
-
-
 
 
 export {

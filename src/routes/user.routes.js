@@ -1,5 +1,16 @@
 import { Router } from "express";
-import {loginUser, logoutUser, registerUser, refreshAccessToken} from "../controllers/user.controller.js";// yha ye import { registerUser } tbhi le skte h jb exp def na ho rha ho 
+import {loginUser, 
+       logoutUser, 
+       registerUser, 
+       refreshAccessToken,
+       changeCurrentPassword,
+       getCurrentUser,
+       updateAccountDetails,
+       updateUserAvatar,
+       updateUserCoverImage,
+       getUserChannelProfile,
+       getWatchHistory,
+} from "../controllers/user.controller.js";// yha ye import { registerUser } tbhi le skte h jb exp def na ho rha ho 
 import {upload} from "../middlewares/multter.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -33,7 +44,7 @@ router.route("/update-account").patch(verifyJWT, updateAccountDetails)// .patch 
 
 router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)// upload.single("avatar") is second middleware
 
-router.route("/cover-image").patch(verifyJWT, upload.single("/coverImage"), updateUserCoverImage)
+router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile) //here we r getting data from parms so username hi rakh skte h b/c in user.controller it is username
 router.route("/history").get(verifyJWT, getWatchHistory)
