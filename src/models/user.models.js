@@ -50,6 +50,8 @@ const userSchema = new Schema(// id khud hi aajata h to id ki koi chinta nhi
         timestamps: true
     }
 )
+// hmlog id nhi banaye b/c vo mongodb khud attach kr deta h
+
 
 // this following login will encrypt the password 
 userSchema.pre("save", async function() {// it is middleware/hook automatically run hota h

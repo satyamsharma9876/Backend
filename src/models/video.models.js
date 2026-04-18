@@ -42,7 +42,8 @@ const videoSchema = new Schema(
     }
 )
 
-videoSchema.plugin(mongooseAggregatePaginate)
+videoSchema.plugin(mongooseAggregatePaginate)//  ye plugin aggregation results ko automaticallyy paginate kr deta h
+//mtlb limit lga skta h,pageno. de skta hai, total pages, next /prev page info bhi deta h
 
 export const Video = mongoose.model("Video", videoSchema)
 
