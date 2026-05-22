@@ -1,20 +1,20 @@
 import dotenv from "dotenv"
 import "dotenv/config";
-//require('dotenv').config({path: './env'})// it will also work but it breks the continuity of code
+//require('dotenv').config({path: './env'})// it will also work but it breaks the continuity of code
 
 // import 'dotenv/config'
 
 
 // import mongoose from "mongoose";
 // import { DB_NAME } from "./constants";
-//      import { app } from "./app.js";
+// import { app } from "./app.js";
 
 // approch 2
 dotenv.config({
     path: './.env'
  });
 import connectDB from "./db/index.js";
- import { app } from "./app.js";
+import { app } from "./app.js";
 // dotenv.config({
 //     path: './.env'
 // })
@@ -22,6 +22,11 @@ import connectDB from "./db/index.js";
 // this connectDB() will return promise in db in index.js it is Asynchronus method so it'll return promise
 connectDB()
 .then(() => {
+
+    // app.on("error", (error) => {// is errror ki kya jarurut padi jb hme neeche catch me error handle kr rhe rhe h?
+    //         console.log("ERROR: ", error);
+    //         throw error           
+    // })
     app.listen(process.env.PORT || 8000, () => {
         console.log(`Server is running at port: ${process.env.PORT}`);
         
@@ -35,7 +40,7 @@ connectDB()
 
 
 
-/*Approach 1, here we used iife to immediately execute fun, try catch and if db is i another continent so we used async await 
+/*Approach 1, here we used iife to immediately execute fun, try catch and as db is in another continent so we used async await 
 Approach 2, write all code in diff file in DB folder and import that fun in this index file
 import express from "express"
 const app = express()

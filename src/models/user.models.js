@@ -11,7 +11,7 @@ const userSchema = new Schema(// id khud hi aajata h to id ki koi chinta nhi
             unique: true,
             lowercase: true,
             trim: true,
-            index: true// for enabling searching field
+            index: true// username pe searching field field enable krna h to use index:true
         },
         email:{
             type: String,
@@ -27,7 +27,7 @@ const userSchema = new Schema(// id khud hi aajata h to id ki koi chinta nhi
             index:true
         },
         avatar:{
-            type: String, // cloudinary url it is a service like AWS in which we can upload files,vioes & get url
+            type: String, // cloudinary url it is a service like AWS in which we can upload files,vioes & give url
             required: true,
         },
         coverImage: {
@@ -53,18 +53,18 @@ const userSchema = new Schema(// id khud hi aajata h to id ki koi chinta nhi
 // hmlog id nhi banaye b/c vo mongodb khud attach kr deta h
 
 
-// this following login will encrypt the password 
+// this following  code will encrypt the password 
 userSchema.pre("save", async function() {// it is middleware/hook automatically run hota h
-    if(!this.isModified("password")) return ;//iif password not change then skip
+    if(!this.isModified("password")) return ;//if password not change then skip
     this.password = await bcrypt.hash(this.password, 10)// isme bhi time lagega to use await, yha plain passwrd hash ban rha h
 })
 
-userSchema.methods.isPasswordCorrect = async function(password){
+userSchema.methods.isPasswordCorrect = async function(password){//.methods se hm apne methods add kr skte h
     return await bcrypt.compare(password, this.password)// return t or f
 }
 
-// it is mongoose model method so har user obj ke pass ye fun h
-userSchema.methods.generateAccessToken = function(){//jwt.sign() JWT token banata hai using jsonwebtoke & for authentication purpose,Login ke baad client ko milta hai, or Har request me bhejta hai & Ye short lived hote h
+// it is mongoose model method so har user obj ke pass ye fun h,generateAccessToken & generateRefreshToken dono hi JWT token h
+userSchema.methods.generateAccessToken = function(){//jwt.sign() method JWT token banata hai using jsonwebtoken & for authentication purpose,Login ke baad client ko milta hai, or Har request me bhejta hai & Ye short lived hote h
   return jwt.sign(// directly ret krdia b/c generateToken krne me time ni lgta so we not use async await
         {// ye 4 payload h jo token me jaiga
             _id: this.id,//JWT has 3 parts header, payload, signature

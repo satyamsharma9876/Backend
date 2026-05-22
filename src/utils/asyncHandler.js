@@ -1,6 +1,8 @@
-const asyncHandler = (requestHandler) => {// it is the higher order fun
+const asyncHandler = (requestHandler) => {// it is the higher order fun that can accept fn as a parameter and also return that fun
    return  (req, res, next) => {
-        Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err))
+        Promise
+        .resolve(requestHandler(req, res, next))
+        .catch((err) => next(err))
     }
 }
 

@@ -4,7 +4,7 @@ import { DB_NAME } from "../constants.js"
 
 //2 things when to talk with DB
 //1. DB is in other continent
-//2. data aane me time lgta h so use async await and try catch OR Promises if use async await
+//2. data aane me time lgta h so use async await and try catch OR Promises if not use async await
 
 
 const connectDB = async () => {

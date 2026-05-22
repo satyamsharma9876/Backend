@@ -1,5 +1,5 @@
 import {v2 as cloudinary} from "cloudinary"
-import fs from "fs"// fs is the file system helps to resd write,etc when to manage file sys use fs
+import fs from "fs"// fs is the file system helps to read write,etc when to manage file sys use fs
 
 
 cloudinary.config({
@@ -17,9 +17,10 @@ const uploadOnCloudinary = async (localFilePath) => {
     try {
         if(!localFilePath) return null
         //upload the fil on cloudinary
-            const response = await cloudinary.uploader.upload(localFilePath, {
-            resource_type: "auto"
+            const response = await cloudinary.uploader.upload(localFilePath, {  
+            resource_type: "auto"// there is very options like image,video,raw so we did auto so that khud hi detect kr lo
         })
+       //console.log(response);   
         // file has been uploaded successfull
         console.log("file is uploaded on cloudinary ", response.url);// got printed 2 times for avatar and for coverImage
         //fs.unlinkSync(localFilePath)// ye jo image public/temp me store ho ja rha postman se req 
